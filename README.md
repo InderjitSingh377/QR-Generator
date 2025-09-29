@@ -1,1 +1,1 @@
-Generate Barcodes and Download PDF                                                                                                                                                          Enter a number between 1 and 10000:
+Generate Barcodes and Download PDF ...                                                                                                                                                         Enter a number between 1 and 10000:
