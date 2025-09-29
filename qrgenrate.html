@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generate Barcodes and Download PDF</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 2rem auto;
+      width: 300px;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"] {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      width: 100%;
+    }
+
+    .error {
+      color: red;
+      font-style: italic;
+      display: none;
+    }
+
+    button[type="submit"] {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button[type="submit"]:hover {
+      background-color: #45a049;
+    }
+
+    p {
+      margin-top: 1rem;
+    }
+
+    .barcode-image {
+      width: 300px;
+      height: 290px;
+      margin-bottom: 2rem;
+    }
+
+    #barcodes {
+      display: none; /* Hide barcodes div, we don't need to show barcodes */
+    }
+
+  </style>
+
+  <!-- Include JsBarcode library -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+  <!-- Include jsPDF library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+</head>
+<body>
+  <form id="form1">
+    <div class="container"> 
+      <img src="cu1.png" alt="Barcode Scanner Image" class="barcode-image">
+      <h2>Generate Barcodes and Download PDF</h2>
+      <label for="TextBoxNumber">Enter a number between 1 and 10000:</label>
+      <input type="text" id="TextBoxNumber" name="number" required>
+      <span class="error" id="numberError">Please enter a valid number between 1 and 10000.</span>
+      <button type="submit" id="ButtonGenerate">Generate</button>
+      <p id="LiteralMessage"></p>
+    </div>
+    <!-- Div to temporarily hold barcodes (not visible to the user) -->
+    <div id="barcodes"></div>
+  </form>
+
+  <script>
+    document.getElementById('form1').addEventListener('submit', function(event) {
+      event.preventDefault(); // Prevent form submission
+
+      // Get the number entered by the user
+      const numberInput = document.getElementById('TextBoxNumber').value;
+      const numberError = document.getElementById('numberError');
+      const message = document.getElementById('LiteralMessage');
+      const barcodesDiv = document.getElementById('barcodes');
+
+      // Clear previous content
+      barcodesDiv.innerHTML = '';
+
+      // Check if the number is valid (between 1 and 10000)
+      if (isNaN(numberInput) || numberInput < 1 || numberInput > 10000) {
+        numberError.style.display = 'block';
+        return;
+      } else {
+        numberError.style.display = 'none';
+      }
+
+      // Convert the input to an integer
+      const numberOfBarcodes = parseInt(numberInput);
+
+      // Initialize jsPDF
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      // Set initial x and y coordinates and other layout variables
+      let x = 10;  // Initial x position (left margin)
+      let y = 10;  // Initial y position (top margin)
+      const pageHeight = 297;  // A4 page height in mm
+      const pageWidth = 210;   // A4 page width in mm
+      const barcodeWidth = 50; // Width of each barcode
+      const barcodeHeight = 20; // Height of each barcode
+      const spacing = 10;  // Spacing between barcodes
+
+      // Calculate how many barcodes per row and column
+      const barcodesPerRow = Math.floor((pageWidth - 2 * x) / (barcodeWidth + spacing)); // Max barcodes per row
+      const barcodesPerPage = Math.floor((pageHeight - 2 * y) / (barcodeHeight + spacing)) * barcodesPerRow; // Total per page
+
+      // Generate barcodes from 1 to the entered number
+      for (let i = 1; i <= numberOfBarcodes; i++) {
+        // Create a new canvas element for each barcode (not shown on the page)
+        const barcodeCanvas = document.createElement('canvas');
+        barcodeCanvas.id = `barcode${i}`;
+        barcodeCanvas.classList.add('barcode-item');
+
+        // Generate the barcode for the current number using JsBarcode
+        JsBarcode(barcodeCanvas, i.toString(), {
+          format: "CODE128",
+          width: 2,
+          height: 40,
+          displayValue: true
+        });
+
+        // Convert the canvas barcode to an image data URL
+        const barcodeDataURL = barcodeCanvas.toDataURL("image/png");
+
+        // Add the barcode image to the PDF document at the current x and y position
+        doc.addImage(barcodeDataURL, 'PNG', x, y, barcodeWidth, barcodeHeight);
+
+        // Update x position for the next barcode in the row
+        x += barcodeWidth + spacing;
+
+        // Check if the row is full, move to the next row
+        if ((i % barcodesPerRow) === 0) {
+          x = 10; // Reset x to the left margin
+          y += barcodeHeight + spacing; // Move y down for the next row
+        }
+
+        // Check if the page is full, move to the next page
+        if (y + barcodeHeight + spacing > pageHeight) {
+          doc.addPage(); // Add new page
+          y = 10; // Reset y for the new page
+          x = 10; // Reset x for the new page
+        }
+      }
+
+      // Automatically download the generated PDF
+      doc.save('barcodes.pdf');
+
+      // Update the message to indicate barcodes are generated
+      message.textContent = `Barcodes generated and PDF downloaded for numbers 1 to ${numberOfBarcodes}.`;
+    });
+  </script>
+</body>
+</html>
